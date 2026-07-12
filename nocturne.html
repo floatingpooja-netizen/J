@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1">
+<title>Nocturne — Soundscape &amp; Lyrics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;1,500&family=Crimson+Pro:ital,wght@0,400;0,500;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --ink: #14151f;
+    --ink-light: #1c1e2a;
+    --ink-lighter: #262838;
+    --paper: #e9e2d0;
+    --paper-dim: #a8a396;
+    --ember: #c98a4b;
+    --ember-glow: rgba(201,138,75,0.35);
+    --wine: #8a4d4d;
+    --moss: #6d7d61;
+    --line: rgba(233,226,208,0.12);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--ink);
+    color: var(--paper);
+    font-family: 'Crimson Pro', serif;
+    min-height: 100vh;
+  }
+
+  body {
+    background-image:
+      radial-gradient(ellipse at 20% -10%, rgba(201,138,75,0.06), transparent 50%),
+      radial-gradient(ellipse at 90% 110%, rgba(109,125,97,0.05), transparent 50%);
+  }
+
+  h1, h2, h3, .display {
+    font-family: 'Cormorant Garamond', serif;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+  }
+
+  .mono {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+  }
+
+  /* ---------- Entry overlay ---------- */
+  #entry {
+    position: fixed; inset: 0; z-index: 50;
+    display: flex; align-items: center; justify-content: center;
+    background: var(--ink);
+    flex-direction: column;
+    gap: 28px;
+    padding: 24px;
+    text-align: center;
+    transition: opacity 0.9s ease;
+  }
+  #entry.hidden { opacity: 0; pointer-events: none; }
+
+  .flame {
+    width: 14px; height: 22px;
+    border-radius: 50% 50% 50% 50% / 60% 60% 40% 40%;
+    background: radial-gradient(circle at 50% 30%, #ffd699, var(--ember) 60%, transparent 80%);
+    animation: flicker 2.6s ease-in-out infinite;
+    filter: blur(0.2px);
+  }
+  @keyframes flicker {
+    0%, 100% { transform: scaleY(1) scaleX(1) translateX(0); opacity: 1; }
+    25% { transform: scaleY(1.08) scaleX(0.94) translateX(0.5px); opacity: 0.92; }
+    50% { transform: scaleY(0.92) scaleX(1.05) translateX(-0.5px); opacity: 1; }
+    75% { transform: scaleY(1.05) scaleX(0.97) translateX(0.3px); opacity: 0.95; }
+  }
+  @media (prefers-reduced-motion: reduce) { .flame { animation: none; } }
+
+  #entryBtn {
+    font-family: 'IBM Plex Mono', monospace;
+    text-transform: uppercase;
+    letter-spacing: 0.16em;
+    font-size: 12px;
+    background: transparent;
+    border: 1px solid var(--ember);
+    color: var(--ember);
+    padding: 14px 28px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: background 0.25s, color 0.25s;
+  }
+  #entryBtn:hover { background: var(--ember); color: var(--ink); }
+  #entrySub { color: var(--paper-dim); font-size: 15px; max-width: 320px; font-style: italic; }
+
+  /* ---------- Layout ---------- */
+  .wrap {
+    max-width: 720px;
+    margin: 0 auto;
+    padding: 28px 20px 80px;
+  }
+
+  header.top {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+    padding-bottom: 16px;
+    margin-bottom: 26px;
+  }
+  header.top h1 { font-size: 30px; margin: 0; letter-spacing: 0.02em; }
+  header.top .tagline { font-size: 12px; color: var(--paper-dim); margin-top: 4px; font-style: italic; }
+  #masterToggle {
+    display: flex; align-items: center; gap: 8px;
+    background: none; border: none; cursor: pointer;
+    color: var(--paper-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  }
+  #masterToggle .dot {
+    width: 7px; height: 7px; border-radius: 50%;
+    background: var(--paper-dim);
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  #masterToggle.playing .dot {
+    background: var(--ember);
+    box-shadow: 0 0 8px var(--ember-glow);
+  }
+  #masterToggle.playing { color: var(--ember); }
+
+  section.panel {
+    background: var(--ink-light);
+    border: 1px solid var(--line);
+    border-radius: 4px;
+    padding: 22px 20px;
+    margin-bottom: 22px;
+  }
+  section.panel h2 {
+    font-size: 19px;
+    margin: 0 0 4px;
+  }
+  .panel-sub {
+    font-size: 12px;
+    color: var(--paper-dim);
+    margin-bottom: 18px;
+    font-style: italic;
+  }
+
+  /* ---------- Presets ---------- */
+  .presets {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+  .preset-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    background: var(--ink-lighter);
+    border: 1px solid var(--line);
+    color: var(--paper-dim);
+    padding: 8px 12px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover, .preset-btn:active {
+    border-color: var(--ember);
+    color: var(--ember);
+  }
+
+  /* ---------- Sliders ---------- */
+  .sound-row {
+    display: grid;
+    grid-template-columns: 100px 1fr 36px;
+    align-items: center;
+    gap: 14px;
+    padding: 11px 0;
+    border-bottom: 1px solid var(--line);
+  }
+  .sound-row:last-child { border-bottom: none; }
+  .sound-label {
+    font-size: 14.5px;
+    color: var(--paper);
+  }
+  .sound-val {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--paper-dim);
+    text-align: right;
+  }
+
+  .slider-track {
+    position: relative;
+    height: 26px;
+    display: flex;
+    align-items: center;
+  }
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: rgba(233,226,208,0.1);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--paper-dim);
+    border: 2px solid var(--ink-light);
+    cursor: pointer;
+    transition: background 0.2s, box-shadow 0.2s;
+  }
+  input[type="range"]:not([value="0"])::-webkit-slider-thumb {
+    background: var(--ember);
+    box-shadow: 0 0 6px var(--ember-glow);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--ember);
+    border: 2px solid var(--ink-light);
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 2px;
+    background: linear-gradient(to right, var(--ember) 0%, var(--ember) var(--fill, 0%), rgba(233,226,208,0.1) var(--fill, 0%));
+  }
+
+  /* ---------- Lyrics pad ---------- */
+  .pad-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .pad-stats {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    color: var(--paper-dim);
+    text-transform: uppercase;
+  }
+  .pad-actions { display: flex; gap: 8px; }
+  .pad-actions button {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    background: none;
+    border: 1px solid var(--line);
+    color: var(--paper-dim);
+    padding: 6px 11px;
+    border-radius: 2px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .pad-actions button:hover { color: var(--ember); border-color: var(--ember); }
+
+  textarea#lyricsPad {
+    width: 100%;
+    min-height: 340px;
+    background: repeating-linear-gradient(
+      var(--ink) 0px, var(--ink) 31px, rgba(233,226,208,0.05) 32px
+    );
+    border: 1px solid var(--line);
+    border-radius: 3px;
+    color: var(--paper);
+    font-family: 'Crimson Pro', serif;
+    font-size: 18px;
+    line-height: 32px;
+    padding: 6px 16px 6px 16px;
+    resize: vertical;
+    outline: none;
+  }
+  textarea#lyricsPad:focus { border-color: var(--ember); }
+  textarea#lyricsPad::placeholder { color: var(--paper-dim); font-style: italic; }
+
+  footer {
+    text-align: center;
+    color: var(--paper-dim);
+    font-size: 11px;
+    margin-top: 30px;
+    font-style: italic;
+  }
+</style>
+</head>
+<body>
+
+<div id="entry">
+  <div class="flame"></div>
+  <div>
+    <h1 class="display" style="font-size:34px; margin:0;">Nocturne</h1>
+    <div id="entrySub" style="margin-top:10px;">A quiet room for writing — layered rain, waves, wind, and firelight, built to sit under your words.</div>
+  </div>
+  <button id="entryBtn">Light the room</button>
+</div>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Nocturne</h1>
+      <div class="tagline">soundscape &amp; lyrics</div>
+    </div>
+    <button id="masterToggle" class="mono">
+      <span class="dot"></span>
+      <span id="masterLabel">Paused</span>
+    </button>
+  </header>
+
+  <section class="panel">
+    <h2>Soundscape</h2>
+    <div class="panel-sub">Mix your own room. Every layer is generated live — nothing to load.</div>
+
+    <div class="presets" id="presets"></div>
+
+    <div id="soundRows"></div>
+  </section>
+
+  <section class="panel">
+    <h2>The page</h2>
+    <div class="panel-sub">Lyrics, verses, fragments — saved on this device as you type.</div>
+
+    <div class="pad-toolbar">
+      <div class="pad-stats" id="padStats">0 words · saved</div>
+      <div class="pad-actions">
+        <button id="exportBtn">Export .txt</button>
+        <button id="clearBtn">Clear page</button>
+      </div>
+    </div>
+
+    <textarea id="lyricsPad" placeholder="Verse 1...&#10;&#10;Start writing. This saves itself."></textarea>
+  </section>
+
+  <footer>Nocturne · built for writing in the dark</footer>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ================= AUDIO ENGINE ================= */
+  let ctx = null;
+  let masterGain = null;
+  let isPlaying = false;
+  const nodes = {}; // per-sound { gain, extras: [] }
+  let schedulers = []; // interval ids for event-based sounds (fire, vinyl)
+
+  const SOUNDS = [
+    { id: 'rain',  label: 'Rain' },
+    { id: 'waves', label: 'Waves' },
+    { id: 'wind',  label: 'Wind' },
+    { id: 'cafe',  label: 'Café Murmur' },
+    { id: 'fire',  label: 'Fireplace' },
+    { id: 'vinyl', label: 'Vinyl Crackle' },
+    { id: 'drone', label: 'Night Drone' }
+  ];
+
+  const PRESETS = {
+    'Rainy Study':     { rain: 70, drone: 30, vinyl: 15, waves: 0, wind: 0, cafe: 0, fire: 0 },
+    'Midnight Shore':  { waves: 75, wind: 25, drone: 20, rain: 0, cafe: 0, fire: 0, vinyl: 0 },
+    'Candlelit Café':  { cafe: 60, fire: 35, vinyl: 10, rain: 0, waves: 0, wind: 0, drone: 0 },
+    'Deep Focus':      { drone: 45, wind: 15, rain: 0, waves: 0, cafe: 0, fire: 0, vinyl: 0 },
+    'Storm Window':    { rain: 80, wind: 40, vinyl: 0, drone: 15, waves: 0, cafe: 0, fire: 0 }
+  };
+
+  function createNoiseBuffer(context, type, seconds) {
+    seconds = seconds || 2;
+    const bufferSize = seconds * context.sampleRate;
+    const buffer = context.createBuffer(1, bufferSize, context.sampleRate);
+    const data = buffer.getChannelData(0);
+    if (type === 'brown') {
+      let last = 0;
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        data[i] = (last + (0.02 * white)) / 1.02;
+        last = data[i];
+        data[i] *= 3.2;
+      }
+    } else {
+      for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+    }
+    return buffer;
+  }
+
+  function buildRain(context, bus) {
+    const src = context.createBufferSource();
+    src.buffer = createNoiseBuffer(context, 'white', 3);
+    src.loop = true;
+    const hp = context.createBiquadFilter();
+    hp.type = 'highpass'; hp.frequency.value = 900;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 6500;
+    const lfo = context.createOscillator();
+    lfo.frequency.value = 0.15;
+    const lfoDepth = context.createGain();
+    lfoDepth.gain.value = 0.06;
+    const shimmer = context.createGain();
+    shimmer.gain.value = 0.85;
+    lfo.connect(lfoDepth); lfoDepth.connect(shimmer.gain);
+    src.connect(hp); hp.connect(lp); lp.connect(shimmer); shimmer.connect(bus);
+    src.start(); lfo.start();
+    return { stopables: [src, lfo] };
+  }
+
+  function buildWaves(context, bus) {
+    const src = context.createBufferSource();
+    src.buffer = createNoiseBuffer(context, 'brown', 3);
+    src.loop = true;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 700;
+    const swell = context.createGain();
+    swell.gain.value = 0.6;
+    const lfo = context.createOscillator();
+    lfo.frequency.value = 0.09;
+    const lfoDepth = context.createGain();
+    lfoDepth.gain.value = 0.35;
+    lfo.connect(lfoDepth); lfoDepth.connect(swell.gain);
+    src.connect(lp); lp.connect(swell); swell.connect(bus);
+    src.start(); lfo.start();
+    return { stopables: [src, lfo] };
+  }
+
+  function buildWind(context, bus) {
+    const src = context.createBufferSource();
+    src.buffer = createNoiseBuffer(context, 'white', 3);
+    src.loop = true;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 500; bp.Q.value = 0.6;
+    const lfo = context.createOscillator();
+    lfo.frequency.value = 0.045;
+    const lfoDepth = context.createGain();
+    lfoDepth.gain.value = 260;
+    lfo.connect(lfoDepth); lfoDepth.connect(bp.frequency);
+    src.connect(bp); bp.connect(bus);
+    src.start(); lfo.start();
+    return { stopables: [src, lfo] };
+  }
+
+  function buildCafe(context, bus) {
+    const src = context.createBufferSource();
+    src.buffer = createNoiseBuffer(context, 'white', 3);
+    src.loop = true;
+    const bp = context.createBiquadFilter();
+    bp.type = 'bandpass'; bp.frequency.value = 850; bp.Q.value = 0.5;
+    const murmur = context.createGain();
+    murmur.gain.value = 0.6;
+    const lfo1 = context.createOscillator();
+    lfo1.frequency.value = 0.3;
+    const lfo2 = context.createOscillator();
+    lfo2.frequency.value = 0.53;
+    const depth1 = context.createGain(); depth1.gain.value = 0.15;
+    const depth2 = context.createGain(); depth2.gain.value = 0.1;
+    lfo1.connect(depth1); depth1.connect(murmur.gain);
+    lfo2.connect(depth2); depth2.connect(murmur.gain);
+    src.connect(bp); bp.connect(murmur); murmur.connect(bus);
+    src.start(); lfo1.start(); lfo2.start();
+    return { stopables: [src, lfo1, lfo2] };
+  }
+
+  function buildDrone(context, bus) {
+    const o1 = context.createOscillator();
+    o1.type = 'sine'; o1.frequency.value = 55;
+    const o2 = context.createOscillator();
+    o2.type = 'sine'; o2.frequency.value = 55 * 1.008;
+    const lp = context.createBiquadFilter();
+    lp.type = 'lowpass'; lp.frequency.value = 400;
+    const swell = context.createGain();
+    swell.gain.value = 0.7;
+    const lfo = context.createOscillator();
+    lfo.frequency.value = 0.06;
+    const lfoDepth = context.createGain();
+    lfoDepth.gain.value = 0.25;
+    lfo.connect(lfoDepth); lfoDepth.connect(swell.gain);
+    o1.connect(lp); o2.connect(lp); lp.connect(swell); swell.connect(bus);
+    o1.start(); o2.start(); lfo.start();
+    return { stopables: [o1, o2, lfo] };
+  }
+
+  // Event-based (fire, vinyl): bus gain acts as intensity; bursts scheduled via setInterval
+  function scheduleFire(context, bus) {
+    const id = setInterval(() => {
+      if (!isPlaying) return;
+      const dur = 0.03 + Math.random() * 0.05;
+      const buf = createNoiseBuffer(context, 'white', dur + 0.01);
+      const src = context.createBufferSource();
+      src.buffer = buf;
+      const bp = context.createBiquadFilter();
+      bp.type = 'bandpass';
+      bp.frequency.value = 1400 + Math.random() * 3000;
+      bp.Q.value = 1.2;
+      const env = context.createGain();
+      const amp = 0.5 + Math.random() * 0.9;
+      env.gain.setValueAtTime(0, context.currentTime);
+      env.gain.linearRampToValueAtTime(amp, context.currentTime + 0.004);
+      env.gain.linearRampToValueAtTime(0, context.currentTime + dur);
+      src.connect(bp); bp.connect(env); env.connect(bus);
+      src.start();
+      src.stop(context.currentTime + dur + 0.02);
+    }, 90 + Math.random() * 180);
+    return id;
+  }
+
+  function scheduleVinyl(context, bus) {
+    const id = setInterval(() => {
+      if (!isPlaying) return;
+      const dur = 0.008 + Math.random() * 0.01;
+      const buf = createNoiseBuffer(context, 'white', dur + 0.005);
+      const src = context.createBufferSource();
+      src.buffer = buf;
+      const hp = context.createBiquadFilter();
+      hp.type = 'highpass'; hp.frequency.value = 2500;
+      const env = context.createGain();
+      const amp = 0.4 + Math.random() * 0.6;
+      env.gain.setValueAtTime(amp, context.currentTime);
+      env.gain.linearRampToValueAtTime(0, context.currentTime + dur);
+      src.connect(hp); hp.connect(env); env.connect(bus);
+      src.start();
+      src.stop(context.currentTime + dur + 0.01);
+    }, 160 + Math.random() * 380);
+    return id;
+  }
+
+  function initAudio() {
+    if (ctx) return;
+    ctx = new (window.AudioContext || window.webkitAudioContext)();
+    masterGain = ctx.createGain();
+    masterGain.gain.value = 1;
+    masterGain.connect(ctx.destination);
+
+    SOUNDS.forEach(s => {
+      const bus = ctx.createGain();
+      bus.gain.value = 0;
+      bus.connect(masterGain);
+      nodes[s.id] = { bus };
+    });
+
+    nodes.rain.build = buildRain(ctx, nodes.rain.bus);
+    nodes.waves.build = buildWaves(ctx, nodes.waves.bus);
+    nodes.wind.build = buildWind(ctx, nodes.wind.bus);
+    nodes.cafe.build = buildCafe(ctx, nodes.cafe.bus);
+    nodes.drone.build = buildDrone(ctx, nodes.drone.bus);
+
+    schedulers.push(scheduleFire(ctx, nodes.fire.bus));
+    schedulers.push(scheduleVinyl(ctx, nodes.vinyl.bus));
+  }
+
+  function setLevel(id, value01) {
+    if (!nodes[id]) return;
+    nodes[id].bus.gain.setTargetAtTime(value01, ctx ? ctx.currentTime : 0, 0.05);
+  }
+
+  /* ================= UI: presets + sliders ================= */
+  const soundRowsEl = document.getElementById('soundRows');
+  const sliderEls = {};
+
+  SOUNDS.forEach(s => {
+    const row = document.createElement('div');
+    row.className = 'sound-row';
+    row.innerHTML = `
+      <div class="sound-label">${s.label}</div>
+      <div class="slider-track">
+        <input type="range" min="0" max="100" value="0" step="1" data-id="${s.id}">
+      </div>
+      <div class="sound-val" id="val-${s.id}">0</div>
+    `;
+    soundRowsEl.appendChild(row);
+    const input = row.querySelector('input');
+    sliderEls[s.id] = input;
+    input.style.setProperty('--fill', '0%');
+    input.addEventListener('input', () => {
+      const v = parseInt(input.value, 10);
+      document.getElementById('val-' + s.id).textContent = v;
+      input.style.setProperty('--fill', v + '%');
+      if (ctx) setLevel(s.id, v / 100);
+    });
+  });
+
+  const presetsEl = document.getElementById('presets');
+  Object.keys(PRESETS).forEach(name => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = name;
+    btn.addEventListener('click', () => applyPreset(PRESETS[name]));
+    presetsEl.appendChild(btn);
+  });
+
+  function applyPreset(map) {
+    SOUNDS.forEach(s => {
+      const v = map[s.id] || 0;
+      sliderEls[s.id].value = v;
+      document.getElementById('val-' + s.id).textContent = v;
+      sliderEls[s.id].style.setProperty('--fill', v + '%');
+      if (ctx) setLevel(s.id, v / 100);
+    });
+    if (!isPlaying) togglePlay(true);
+  }
+
+  /* ================= Entry + master toggle ================= */
+  const entry = document.getElementById('entry');
+  const entryBtn = document.getElementById('entryBtn');
+  const masterToggle = document.getElementById('masterToggle');
+  const masterLabel = document.getElementById('masterLabel');
+
+  entryBtn.addEventListener('click', () => {
+    initAudio();
+    if (ctx.state === 'suspended') ctx.resume();
+    isPlaying = true;
+    updateMasterUI();
+    entry.classList.add('hidden');
+    setTimeout(() => entry.style.display = 'none', 900);
+  });
+
+  function togglePlay(forceState) {
+    if (!ctx) { initAudio(); }
+    const next = typeof forceState === 'boolean' ? forceState : !isPlaying;
+    isPlaying = next;
+    if (isPlaying) { if (ctx.state === 'suspended') ctx.resume(); }
+    else { ctx.suspend(); }
+    updateMasterUI();
+  }
+
+  function updateMasterUI() {
+    masterToggle.classList.toggle('playing', isPlaying);
+    masterLabel.textContent = isPlaying ? 'Playing' : 'Paused';
+  }
+
+  masterToggle.addEventListener('click', () => togglePlay());
+
+  /* ================= Lyrics pad ================= */
+  const pad = document.getElementById('lyricsPad');
+  const padStats = document.getElementById('padStats');
+  const STORAGE_KEY = 'nocturne_lyrics_v1';
+  let saveTimeout = null;
+
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) pad.value = saved;
+  updateStats('saved');
+
+  pad.addEventListener('input', () => {
+    updateStats('typing…');
+    clearTimeout(saveTimeout);
+    saveTimeout = setTimeout(() => {
+      localStorage.setItem(STORAGE_KEY, pad.value);
+      updateStats('saved');
+    }, 500);
+  });
+
+  function updateStats(status) {
+    const text = pad.value.trim();
+    const words = text.length ? text.split(/\s+/).length : 0;
+    padStats.textContent = `${words} word${words === 1 ? '' : 's'} · ${status}`;
+  }
+
+  document.getElementById('exportBtn').addEventListener('click', () => {
+    const blob = new Blob([pad.value], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0, 10);
+    a.href = url;
+    a.download = `nocturne-lyrics-${stamp}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    if (pad.value.trim().length && !confirm('Clear the page? This can\'t be undone.')) return;
+    pad.value = '';
+    localStorage.removeItem(STORAGE_KEY);
+    updateStats('cleared');
+    pad.focus();
+  });
+
+})();
+</script>
+</body>
+</html>
